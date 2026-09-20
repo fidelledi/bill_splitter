@@ -3,7 +3,7 @@ from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
 
-st.set_page_config(page_title="B27 L16 Bill Manager", layout="wide")
+st.set_page_config(page_title="Palisa Bill Manager", layout="wide")
 
 # --- GOOGLE SHEETS CONNECTION ---
 # Replace this with your actual Google Sheet URL
@@ -12,78 +12,101 @@ SHEET_URL = "https://docs.google.com/spreadsheets/d/105OsVZ5GgD3QxlSP0oqLWU1zrut
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 def load_data():
-    return conn.read(spreadsheet=SHEET_URL, usecols=[0,1,2,3,4,5])
+    try:
+        return conn.read(spreadsheet=SHEET_URL)
+    except:
+        return pd.DataFrame()
 
 # --- UI STYLING ---
-st.title("🏠 Family Bill Manager")
-st.info("Logic: Palisa pays submetered electricity + ₱500 water. Rillon pays the remainder.")
+st.title("🏠 BLK 27 L16 Bill Splitter")
+st.markdown("---")
 
 tab1, tab2 = st.tabs(["🧮 Calculator", "📜 History Log"])
 
 with tab1:
-    col_input, col_result = st.columns([1, 1], gap="large")
+    col_input, col_result = st.columns([1, 1.2], gap="large")
 
     with col_input:
-        st.subheader("📋 Input Monthly Data")
+        st.subheader("📋 Monthly Inputs")
         billing_month = st.date_input("Billing Month", value=datetime.now()).strftime("%B %Y")
         
-        with st.expander("⚡ Electricity Details", expanded=True):
+        with st.expander("⚡ Electricity (Meralco)", expanded=True):
             total_elec_bill = st.number_input("Total Meralco Bill (₱)", min_value=0.0)
             meralco_rate = st.number_input("Meralco Rate (₱/kWh)", min_value=0.0, value=12.0)
             prev_reading = st.number_input("Palisa: Previous Submeter", min_value=0.0)
             curr_reading = st.number_input("Palisa: Current Submeter", min_value=0.0)
 
-        with st.expander("💧 Water Details", expanded=True):
+        with st.expander("💧 Water & Others", expanded=True):
             total_water_bill = st.number_input("Total Water Bill (₱)", min_value=0.0)
-            fixed_water_a = 500.0
+            st.info("Fixed Fees Applied:\n- Water (Palisa): ₱500\n- HOA (Palisa): ₱35\n- Internet: ₱1,499 (Split 50/50)")
 
     # --- CALCULATIONS ---
-    kwh_used_a = curr_reading - prev_reading
-    elec_share_a = kwh_used_a * meralco_rate
-    elec_share_b = max(0.0, total_elec_bill - elec_share_a)
+    # 1. Electricity
+    kwh_used_palisa = curr_reading - prev_reading
+    elec_palisa = kwh_used_palisa * meralco_rate
+    elec_fam_b = max(0.0, total_elec_bill - elec_palisa)
     
-    water_share_a = fixed_water_a
-    water_share_b = max(0.0, total_water_bill - fixed_water_a)
+    # 2. Water
+    water_palisa = 500.0
+    water_fam_b = max(0.0, total_water_bill - water_palisa)
+    
+    # 3. HOA & Internet
+    hoa_palisa = 35.0
+    internet_total = 1499.0
+    internet_share = internet_total / 2
 
-    total_a = elec_share_a + water_share_a
-    total_b = elec_share_b + water_share_b
+    # 4. Final Totals
+    total_palisa = elec_palisa + water_palisa + hoa_palisa + internet_share
+    total_fam_b = elec_fam_b + water_fam_b + internet_share
 
     with col_result:
         st.subheader(f"📊 Summary for {billing_month}")
         
-        st.success(f"**Palisa Total: ₱{total_a:,.2f}**")
-        st.caption(f"(Elec: ₱{elec_share_a:,.2f} + Water: ₱{water_share_a:,.2f})")
+        # Display Palisa's Column
+        res_a, res_b = st.columns(2)
         
-        st.warning(f"**Rillon Total: ₱{total_b:,.2f}**")
-        st.caption(f"(Elec: ₱{elec_share_b:,.2f} + Water: ₱{water_share_b:,.2f})")
+        with res_a:
+            st.success("### 👤 Palisa")
+            st.write(f"⚡ Elec ({kwh_used_palisa:.1f} kWh): **₱{elec_palisa:,.2f}**")
+            st.write(f"💧 Water (Fixed): **₱{water_palisa:,.2f}**")
+            st.write(f"🏠 HOA (UDHAI): **₱{hoa_palisa:,.2f}**")
+            st.write(f"🌐 Internet (50%): **₱{internet_share:,.2f}**")
+            st.markdown(f"## **Total: ₱{total_palisa:,.2f}**")
+        
+        with res_b:
+            st.warning("### 👥 Rillon")
+            st.write(f"⚡ Elec (Remainder): **₱{elec_fam_b:,.2f}**")
+            st.write(f"💧 Water (Remainder): **₱{water_fam_b:,.2f}**")
+            st.write(f"🏠 HOA: **₱0.00**")
+            st.write(f"🌐 Internet (50%): **₱{internet_share:,.2f}**")
+            st.markdown(f"## **Total: ₱{total_fam_b:,.2f}**")
 
-        if st.button("💾 Save to Google Sheets", use_container_width=True):
+        st.divider()
+        if st.button("💾 Save Monthly Record to Google Sheets", use_container_width=True):
             try:
-                # Prepare new data
                 new_row = pd.DataFrame([{
                     "Month": billing_month,
                     "Total_Elec": total_elec_bill,
                     "Total_Water": total_water_bill,
-                    "Fam_A_Total": total_a,
-                    "Fam_B_Total": total_b,
-                    "Fam_A_kWh": kwh_used_a
+                    "Palisa_Total": total_palisa,
+                    "Rillon_Total": total_fam_b,
+                    "Palisa_kWh": kwh_used_palisa,
+                    "Internet_Total": internet_total,
+                    "HOA": hoa_palisa
                 }])
                 
-                # Fetch existing data and append
                 existing_data = load_data()
                 updated_df = pd.concat([existing_data, new_row], ignore_index=True)
-                
-                # Write back to sheet
                 conn.update(spreadsheet=SHEET_URL, data=updated_df)
                 st.balloons()
-                st.success("Saved to Google Sheets!")
+                st.success("Record saved successfully!")
             except Exception as e:
-                st.error(f"Error saving: {e}")
+                st.error(f"Error: {e}")
 
 with tab2:
-    st.subheader("Past Bills")
-    try:
-        history_df = load_data()
+    st.subheader("History")
+    history_df = load_data()
+    if not history_df.empty:
         st.dataframe(history_df.dropna(how='all'), use_container_width=True)
-    except:
-        st.write("Connect your Google Sheet to see history.")
+    else:
+        st.info("No records found.")
