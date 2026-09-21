@@ -67,18 +67,18 @@ with tab1:
         c1, c2 = st.columns(2)
         with c1:
             st.success("### 👤 Palisa")
-            st.write(f"Elec: **₱{p_elec:,.2f}**")
+            st.write(f"Kuryente ({p_kwh:.1f}): **₱{p_elec:,.2f}**")
             st.write(f"Water: **₱{p_water:,.2f}**")
-            st.write(f"HOA: **₱{p_hoa:,.2f}**")
-            st.write(f"Net: **₱{net_share:,.2f}**")
+            st.write(f"HOA (UDHAI): **₱{p_hoa:,.2f}**")
+            st.write(f"Globe Internet (50%): **₱{net_share:,.2f}**")
             st.markdown(f"#### Total: ₱{total_p:,.2f}")
             
         with c2:
             st.warning("### 👥 Rillon")
-            st.write(f"Elec: **₱{b_elec:,.2f}**")
+            st.write(f"Kuryente: **₱{b_elec:,.2f}**")
             st.write(f"Water: **₱{b_water:,.2f}**")
-            st.write(f"HOA: **₱0.00**")
-            st.write(f"Net: **₱{net_share:,.2f}**")
+            st.write(f"HOA (UDHAI): **₱0.00**")
+            st.write(f"Globe Internet (50%): **₱{net_share:,.2f}**")
             st.markdown(f"#### Total: ₱{total_b:,.2f}")
 
         st.divider()
