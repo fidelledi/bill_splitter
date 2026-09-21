@@ -67,7 +67,7 @@ with tab1:
         c1, c2 = st.columns(2)
         with c1:
             st.success("### 👤 Palisa")
-            st.write(f"Kuryente ({p_kwh:.1f}): **₱{p_elec:,.2f}**")
+            st.write(f"Kuryente ({p_kwh:.1f} kWh): **₱{p_elec:,.2f}**")
             st.write(f"Water: **₱{p_water:,.2f}**")
             st.write(f"HOA (UDHAI): **₱{p_hoa:,.2f}**")
             st.write(f"Globe Internet (50%): **₱{net_share:,.2f}**")
